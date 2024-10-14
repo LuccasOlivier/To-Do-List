@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gerenciador de Tarefas</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script>
+      const apiBaseUrl = "http://localhost:8000";
+      let accessToken = ""; // Variável para armazenar o token
+
+      // Função para login
+      function login() {
+        const usernameInput = document.getElementById("username");
+        const passwordInput = document.getElementById("password");
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+
+        const messageArea = document.getElementById("message-area");
+        messageArea.style.display = "none"; // Esconde a área de mensagens
+
+        fetch(`${apiBaseUrl}/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            username: username,
+            password: password,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              displayMessage("Login falhou. Verifique seu usuário e senha.");
+              throw new Error("Login falhou");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            accessToken = data.access_token;
+            usernameInput.value = "";
+            passwordInput.value = "";
+            loadUserDetails(); // Carrega detalhes do usuário após login
+            loadTasks(); // Carrega as tarefas
+
+            // Oculta o formulário de login
+            document.getElementById("login-form").classList.add("hidden");
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+
+      // Função para logout
+      function logout() {
+        accessToken = ""; // Limpa o token
+        const userInfo = document.getElementById("user-info");
+        userInfo.textContent = ""; // Limpa a informação do usuário
+        userInfo.classList.add("hidden"); // Esconde a informação do usuário
+        document.getElementById("task-list").innerHTML = ""; // Limpa a lista de tarefas
+        toggleTaskInput(false); // Esconde o input de tarefas
+
+        // Exibe a mensagem de saída
+        displayMessage("Você saiu com sucesso.");
+
+        // Mostra o formulário de login novamente
+        document.getElementById("login-form").classList.remove("hidden");
+
+        // Oculte a área de tarefas
+        const taskInputSection = document.getElementById("task-input-section");
+        taskInputSection.classList.add("hidden");
+
+        // Oculte o botão de logout
+        document
+          .querySelector('button[onclick="logout()"]')
+          .classList.add("hidden");
+      }
+
+      // Função para cadastro
+      function register() {
+        const username = document.getElementById("register-username").value;
+        const password = document.getElementById("register-password").value;
+
+        const messageArea = document.getElementById("message-area");
+        messageArea.style.display = "none"; // Esconde a área de mensagens
+
+        fetch(`${apiBaseUrl}/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              if (response.status === 400) {
+                displayMessage(
+                  "Usuário já existe. Tente outro nome de usuário."
+                );
+              } else {
+                displayMessage("Erro ao registrar. Tente novamente.");
+              }
+              throw new Error("Erro no cadastro");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            alert("Cadastro realizado com sucesso!");
+            document.getElementById("register-username").value = "";
+            document.getElementById("register-password").value = "";
+            toggleForms("login"); // Volta para a tela de login
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+
+      // Função para carregar detalhes do usuário
+      function loadUserDetails() {
+        fetch(`${apiBaseUrl}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              displayMessage("Falha ao carregar detalhes do usuário.");
+              throw new Error("Falha ao carregar detalhes do usuário");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const userInfo = document.getElementById("user-info");
+            userInfo.textContent = `Usuário: ${data.username}`;
+            userInfo.classList.remove("hidden"); // Mostra a informação do usuário
+            toggleTaskInput(true); // Mostra a seção de adicionar tarefas
+
+            // Mostra o botão de logout
+            document
+              .querySelector('button[onclick="logout()"]')
+              .classList.remove("hidden");
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayMessage("Erro ao carregar detalhes do usuário.");
+          });
+      }
+
+      // Função para carregar tarefas
+      function loadTasks() {
+        if (!accessToken) return;
+
+        fetch(`${apiBaseUrl}/tasks/`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              if (response.status === 401) {
+                displayMessage(
+                  "Você precisa estar logado para gerenciar tarefas."
+                );
+              } else {
+                displayMessage("Falha ao carregar tarefas.");
+              }
+              throw new Error("Falha ao carregar tarefas");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const taskList = document.getElementById("task-list");
+            taskList.innerHTML = "";
+
+            data.forEach((task) => {
+              const li = document.createElement("li");
+              li.className =
+                "flex justify-between items-center bg-white shadow-md rounded p-4 mb-3 transition duration-200 hover:bg-gray-100";
+              li.setAttribute("data-id", task.id); // Adiciona o atributo data-id para identificar a tarefa
+
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.checked = task.completed;
+              checkbox.onclick = () =>
+                updateTask(task.id, task.title, checkbox.checked);
+
+              const title = document.createElement("span");
+              title.textContent = task.title;
+              title.className = `ml-2 text-lg ${
+                task.completed ? "line-through text-gray-500" : ""
+              }`;
+
+              li.appendChild(checkbox);
+              li.appendChild(title);
+
+              const deleteButton = document.createElement("button");
+              deleteButton.textContent = "Deletar";
+              deleteButton.className =
+                "bg-red-500 text-white px-3 py-1 rounded ml-2 hover:bg-red-600 transition duration-200";
+              deleteButton.onclick = () => deleteTask(task.id);
+              li.appendChild(deleteButton);
+
+              taskList.appendChild(li);
+            });
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayMessage("Erro ao carregar tarefas.");
+          });
+      }
+
+      // Função para adicionar tarefa
+      async function addTask() {
+        const titleInput = document.getElementById("task-input");
+        const title = titleInput.value; // Obtém o título da tarefa
+
+        if (!title) {
+          displayMessage("Por favor, insira um título para a tarefa.");
+          return; // Não prossegue se o título estiver vazio
+        }
+
+        if (!accessToken) {
+          displayMessage(
+            "Para adicionar uma tarefa, é necessário estar logado."
+          );
+          return; // Sai da função
+        }
+
+        const response = await fetch(`${apiBaseUrl}/tasks/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ title, completed: false }),
+        });
+
+        if (response.ok) {
+          titleInput.value = ""; // Limpa o campo de entrada
+          loadTasks(); // Recarrega a lista de tarefas
+        } else {
+          displayMessage("Erro ao adicionar tarefa.");
+        }
+      }
+
+      // Função para atualizar uma tarefa
+      function updateTask(id, title, completed) {
+        if (!accessToken) return;
+
+        fetch(`${apiBaseUrl}/tasks/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`, // Enviando o token
+          },
+          body: JSON.stringify({ title, completed }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Erro ao atualizar tarefa");
+            }
+            return response.json();
+          })
+          .then(() => {
+            // Atualiza o estilo da tarefa instantaneamente
+            const taskItem = document.querySelector(`li[data-id="${id}"] span`);
+            if (taskItem) {
+              taskItem.classList.toggle("line-through", completed);
+              taskItem.classList.toggle("text-gray-500", completed);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayMessage("Erro ao atualizar tarefa.");
+          });
+      }
+
+      // Função para deletar tarefa
+      async function deleteTask(id) {
+        const response = await fetch(`${apiBaseUrl}/tasks/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (response.ok) {
+          loadTasks(); // Recarrega a lista de tarefas
+        } else {
+          displayMessage("Erro ao deletar tarefa.");
+        }
+      }
+
+      // Função para exibir mensagens de erro ou sucesso
+      function displayMessage(message) {
+        const messageArea = document.getElementById("message-area");
+        messageArea.textContent = message;
+        messageArea.style.display = "block"; // Mostra a área de mensagens
+      }
+
+      // Função para alternar entre login e registro
+      function toggleForms(formType) {
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+
+        if (formType === "login") {
+          loginForm.classList.remove("hidden");
+          registerForm.classList.add("hidden");
+        } else {
+          loginForm.classList.add("hidden");
+          registerForm.classList.remove("hidden");
+        }
+      }
+
+      // Função para mostrar/ocultar a entrada de tarefas
+      function toggleTaskInput(show) {
+        const taskInputSection = document.getElementById("task-input-section");
+        taskInputSection.classList.toggle("hidden", !show); // Mostra ou esconde o input de tarefas
+      }
+    </script>
+  </head>
+  <body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="container mx-auto py-8">
+      <div
+        class="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden"
+      >
+        <!-- Título do Gerenciador de Tarefas -->
+        <h2 class="text-center text-2xl font-bold text-gray-800 py-4">
+          Gerenciador de Tarefas
+        </h2>
+        <!-- Área de Mensagens -->
+        <div
+          id="message-area"
+          class="hidden bg-red-500 text-white px-4 py-2 mb-4"
+        ></div>
+        <!-- Formulário de Login -->
+        <div id="login-form" class="px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-700 text-center">Login</h3>
+          <input
+            id="username"
+            type="text"
+            class="w-full px-4 py-2 mt-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Usuário"
+          />
+          <input
+            id="password"
+            type="password"
+            class="w-full px-4 py-2 mt-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Senha"
+          />
+          <button
+            onclick="login()"
+            class="w-full bg-blue-500 text-white py-2 mt-4 rounded-md hover:bg-blue-600 transition duration-200"
+          >
+            Entrar
+          </button>
+          <button
+            onclick="toggleForms('register')"
+            class="w-full text-blue-500 py-2 mt-2 rounded-md hover:underline"
+          >
+            Não tem uma conta? Cadastre-se
+          </button>
+        </div>
+
+        <!-- Formulário de Registro -->
+        <div id="register-form" class="hidden px-6 py-4">
+          <h3 class="text-lg font-semibold text-gray-700 text-center">
+            Cadastro
+          </h3>
+          <input
+            id="register-username"
+            type="text"
+            class="w-full px-4 py-2 mt-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Usuário"
+          />
+          <input
+            id="register-password"
+            type="password"
+            class="w-full px-4 py-2 mt-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Senha"
+          />
+          <button
+            onclick="register()"
+            class="w-full bg-green-500 text-white py-2 mt-4 rounded-md hover:bg-green-600 transition duration-200"
+          >
+            Cadastrar
+          </button>
+          <button
+            onclick="toggleForms('login')"
+            class="w-full text-green-500 py-2 mt-2 rounded-md hover:underline"
+          >
+            Já tem uma conta? Faça login
+          </button>
+        </div>
+
+        <!-- Seção de Informações do Usuário -->
+        <div id="user-info" class="hidden text-center text-gray-700 mt-4"></div>
+
+        <!-- Seção de Input de Tarefas -->
+        <div id="task-input-section" class="hidden px-6 py-4">
+          <div class="flex items-center">
+            <input
+              id="task-input"
+              type="text"
+              class="flex-grow px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Adicionar nova tarefa"
+            />
+            <button
+              onclick="addTask()"
+              class="bg-blue-500 text-white px-4 py-2 rounded-md ml-2 hover:bg-blue-600 transition duration-200"
+            >
+              Adicionar
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de Tarefas -->
+        <ul id="task-list" class="px-6 py-4"></ul>
+
+        <!-- Botão de Logout -->
+        <div class="px-6 py-4 text-center">
+          <button
+            onclick="logout()"
+            class="hidden bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-200"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
