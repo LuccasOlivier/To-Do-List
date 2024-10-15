@@ -1,7 +1,7 @@
 # To-Do List Application
 
 ## Descrição do Projeto
-O **To-Do List** é uma aplicação web desenvolvida para facilitar o gerenciamento de tarefas diárias. Com uma interface simples e intuitiva, os usuários podem adicionar, atualizar e remover tarefas com facilidade. Esta aplicação utiliza **FastAPI** para o backend, oferecendo uma API robusta, enquanto o frontend é construído com **HTML**, **CSS** e **JavaScript**.
+O **To-Do List** é um projeto **full stack**: uma aplicação **To-Do List**, desenvolvida com **Python** e **FastAPI** para o **backend**, que oferece uma API robusta e eficiente. O **frontend** foi criado utilizando **HTML**, **CSS** e **JavaScript**, permitindo que os usuários adicionem, atualizem e removam tarefas de forma simples e intuitiva.
 
 ## Funcionalidades
 - **Adicionar Tarefas:** Os usuários podem criar novas tarefas, fornecendo um título e uma descrição.
@@ -11,13 +11,16 @@ O **To-Do List** é uma aplicação web desenvolvida para facilitar o gerenciame
 
 ## Tecnologias Utilizadas
 - **Backend:** 
-  - **FastAPI:** Um framework moderno e rápido para construir APIs com Python.
-  - **PostgreSQL:** Banco de dados relacional utilizado para armazenar tarefas de forma persistente.
-  - **Redis:** Usado para cache de tarefas e otimização do desempenho da aplicação.
+  - **FastAPI:** para a criação da API, garantindo alta performance e facilidade de uso.
+  - **Banco de Dados:** PostgreSQL para armazenamento persistente de tarefas..
+  - **Cache:** Redis, utilizado para otimizar o desempenho.
 
 - **Frontend:**
   - **HTML/CSS:** Para a estrutura e estilo da interface do usuário.
   - **JavaScript (AJAX):** Para comunicação assíncrona com a API, permitindo que os dados sejam enviados e recebidos sem recarregar a página.
+
+- **Segurança:**
+  - Implementação de autenticação básica com JWT (JSON Web Token), garantindo que apenas usuários autenticados possam adicionar ou remover tarefas.
 
 ## Conclusão
 A aplicação **To-Do List** é uma solução eficiente e prática para gerenciar tarefas diárias. Com a utilização de tecnologias modernas como **FastAPI**, **PostgreSQL** e **Redis**, garantimos um desempenho otimizado e uma experiência de usuário fluida. Esta aplicação não só permite que os usuários organizem suas atividades de maneira simples, mas também pode ser facilmente expandida e personalizada conforme as necessidades.
