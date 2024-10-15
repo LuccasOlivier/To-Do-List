@@ -24,3 +24,6 @@ A aplicação **To-Do List** é uma solução eficiente e prática para gerencia
 
 Desenvolvida por mim, esta aplicação reflete meu compromisso em criar ferramentas úteis e funcionais para o dia a dia. Sinta-se à vontade para contribuir com melhorias ou personalizações!
 
+## Confira o vídeo demonstrativo da aplicação completa:
+https://github.com/user-attachments/assets/87589dc3-301b-4445-9595-14567189715a
+
